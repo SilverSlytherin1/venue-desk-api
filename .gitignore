@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+src/generated/
+*.tsbuildinfo
+
+# Local configuration and anything that could hold a credential
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+npm-debug.log*
+.DS_Store
+.idea/
+.vscode/

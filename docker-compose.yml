@@ -1,0 +1,51 @@
+# Local demo stack. Not a deployment: the credentials and the JWT secret below are published
+# demo values, and DEMO_MODE is what lets the API accept them while running in production mode.
+name: venue-desk
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: venue_desk
+      POSTGRES_PASSWORD: venue_desk
+      POSTGRES_DB: venue_desk
+    ports:
+      # Loopback only: these credentials must not be reachable from the network.
+      - '127.0.0.1:${DB_PORT:-5433}:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U venue_desk -d venue_desk']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  # One-shot job: schema and demo data are applied before the API starts, never by the API itself.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://venue_desk:venue_desk@db:5432/venue_desk
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://venue_desk:venue_desk@db:5432/venue_desk
+      DEMO_MODE: 'true'
+      JWT_SECRET: ${JWT_SECRET:-demo-only-jwt-secret-do-not-use-in-production}
+      JWT_TTL_SECONDS: ${JWT_TTL_SECONDS:-3600}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
+      LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-5}
+      BOOKING_RATE_LIMIT: ${BOOKING_RATE_LIMIT:-10}
+    ports:
+      - '${API_PORT:-3000}:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:

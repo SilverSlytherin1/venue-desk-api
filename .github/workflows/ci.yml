@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# The workflow only reads the repository. Nothing here needs a write token or a secret.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    name: Lint, types, unit tests, build, audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # Cheapest checks first, so an obvious mistake fails in seconds.
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # The same flags as the install of the runtime image, so this gates what is shipped.
+      # Plain --omit=dev would also count the Prisma CLI, which npm keeps as an optional peer
+      # of @prisma/client and which has open advisories with no fixed release.
+      - run: npm audit --omit=dev --omit=optional --audit-level=high
+
+  e2e:
+    name: End-to-end tests and migration drift on PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: venue_desk
+          POSTGRES_PASSWORD: venue_desk
+          POSTGRES_DB: venue_desk_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U venue_desk -d venue_desk_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      E2E_DATABASE_URL: postgresql://venue_desk:venue_desk@localhost:5432/venue_desk_e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run test:e2e
+      # The suite has just applied every migration to this database. It must now be exactly
+      # what schema.prisma describes, or a schema change was committed without its migration.
+      - run: npm run db:check
+        env:
+          DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
+
+  image:
+    name: Docker images and the compose demo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Builds both images, migrates, seeds and waits for the API to report healthy:
+      # the "run it" path of the README, end to end.
+      - run: docker compose up --build --wait --wait-timeout 240
+      - run: curl --fail --silent --show-error http://localhost:3000/api/v1/health
+      - if: failure()
+        run: docker compose logs
