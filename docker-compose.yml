@@ -27,6 +27,9 @@ services:
       target: migrate
     environment:
       DATABASE_URL: postgresql://venue_desk:venue_desk@db:5432/venue_desk
+      # The seed writes demo messages with the same settings as the API.
+      VENUE_TIME_ZONE: ${VENUE_TIME_ZONE:-Europe/Rome}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:4200}
     depends_on:
       db:
         condition: service_healthy
@@ -41,6 +44,9 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4200}
       LOGIN_RATE_LIMIT: ${LOGIN_RATE_LIMIT:-5}
       BOOKING_RATE_LIMIT: ${BOOKING_RATE_LIMIT:-10}
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      VENUE_TIME_ZONE: ${VENUE_TIME_ZONE:-Europe/Rome}
+      PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:4200}
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:

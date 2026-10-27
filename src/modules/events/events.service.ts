@@ -1,24 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { NotFoundError, ValidationFailedError } from '../../common/errors/domain-errors.js';
-import { type Page, type PageQueryDto, toSkipTake } from '../../common/http/pagination.js';
+import { type Page, toSkipTake } from '../../common/http/pagination.js';
 import { PrismaService } from '../../database/prisma.service.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 import type { CreateEventDto } from './dto/create-event.dto.js';
 import type { EventDto } from './dto/event.dto.js';
+import type { ListEventsQueryDto } from './dto/list-events-query.dto.js';
 import { eventSelect, toEventDto } from './event.mapper.js';
 
 @Injectable()
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(query: PageQueryDto): Promise<Page<EventDto>> {
+  /** Upcoming events have not started yet and come soonest first; past ones latest first. */
+  async list(query: ListEventsQueryDto, now: Date = new Date()): Promise<Page<EventDto>> {
+    const upcoming = query.when === 'upcoming';
+    const where: Prisma.EventWhereInput = { startsAt: upcoming ? { gte: now } : { lt: now } };
+    const direction = upcoming ? 'asc' : 'desc';
+
     const [rows, total] = await Promise.all([
       this.prisma.event.findMany({
+        where,
         select: eventSelect,
         // The id breaks ties so that pages stay stable when two events start together.
-        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+        orderBy: [{ startsAt: direction }, { id: 'asc' }],
         ...toSkipTake(query),
       }),
-      this.prisma.event.count(),
+      this.prisma.event.count({ where }),
     ]);
     return { items: rows.map(toEventDto), page: query.page, pageSize: query.pageSize, total };
   }

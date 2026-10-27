@@ -16,4 +16,8 @@ export const e2eEnv = {
   // themselves are exercised in rate-limits.e2e-spec.ts.
   LOGIN_RATE_LIMIT: '1000',
   BOOKING_RATE_LIMIT: '1000',
+  // Tests call MessagesService.dispatchDue themselves, with the clock they need.
+  SCHEDULER_ENABLED: 'false',
+  VENUE_TIME_ZONE: 'Europe/Rome',
+  PUBLIC_WEB_URL: 'http://localhost:4200',
 };

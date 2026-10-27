@@ -1,4 +1,5 @@
 import type { Prisma } from '../../generated/prisma/client.js';
+import { bookingMessageSelect, toBookingMessageDto } from '../messages/message.mapper.js';
 import { bookingReference } from './booking-reference.js';
 import type { BookingDto } from './dto/booking.dto.js';
 
@@ -11,6 +12,8 @@ export const bookingSelect = {
   seats: true,
   status: true,
   createdAt: true,
+  messages: { select: bookingMessageSelect, orderBy: [{ scheduledFor: 'asc' }, { kind: 'asc' }] },
+  feedback: { select: { rating: true } },
 } satisfies Prisma.BookingSelect;
 
 type BookingRow = Prisma.BookingGetPayload<{ select: typeof bookingSelect }>;
@@ -25,5 +28,7 @@ export function toBookingDto(row: BookingRow): BookingDto {
     seats: row.seats,
     status: row.status,
     createdAt: row.createdAt.toISOString(),
+    messages: row.messages.map(toBookingMessageDto),
+    rating: row.feedback?.rating ?? null,
   };
 }

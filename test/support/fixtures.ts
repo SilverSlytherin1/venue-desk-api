@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Response } from 'supertest';
 import { expect } from 'vitest';
 import type { ErrorCode } from '../../src/common/errors/domain-errors.js';
-import type { Event, Prisma, User, WorkOrder } from '../../src/generated/prisma/client.js';
+import type { Booking, Event, Prisma, User, WorkOrder } from '../../src/generated/prisma/client.js';
 import type { Role } from '../../src/common/auth/role.js';
 import { hashPassword } from '../../src/modules/auth/password.js';
 import type { TestApp } from './test-app.js';
@@ -83,6 +83,28 @@ export function createWorkOrder(
   });
 }
 
+/**
+ * Writes a booking straight to the database, with no seats taken and no messages: for states
+ * the API cannot create, such as a booking for an event that has already happened.
+ */
+export function createBooking(
+  t: TestApp,
+  eventId: string,
+  overrides: Partial<Prisma.BookingUncheckedCreateInput> = {},
+): Promise<Booking> {
+  return t.prisma.booking.create({
+    data: {
+      eventId,
+      name: 'Ruth Calder',
+      email: 'ruth@example.com',
+      seats: 2,
+      idempotencyKey: randomUUID(),
+      payloadHash: 'test',
+      ...overrides,
+    },
+  });
+}
+
 /** Sends a booking request with a fresh idempotency key, unless one is given. */
 export function book(
   t: TestApp,
@@ -93,7 +115,7 @@ export function book(
   return t.api
     .post(`/events/${eventId}/bookings`)
     .set('Idempotency-Key', idempotencyKey)
-    .send({ name: 'Ada Lovelace', email: 'ada@example.com', seats });
+    .send({ name: 'Lena Varga', email: 'lena@example.com', seats });
 }
 
 /** Asserts the RFC 7807 envelope of the contract, not just the status code. */

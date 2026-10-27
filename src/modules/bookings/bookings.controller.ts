@@ -82,9 +82,11 @@ export class BookingsController {
   @Roles('ADMIN', 'STAFF')
   @ApiProtected()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Cancel a booking and release its seats. Safe to repeat.' })
+  @ApiOperation({
+    summary: 'Cancel a booking and release its seats, until the event starts. Safe to repeat.',
+  })
   @ApiOkResponse({ type: BookingDto })
-  @ApiProblem('VALIDATION_FAILED', 'NOT_FOUND')
+  @ApiProblem('VALIDATION_FAILED', 'NOT_FOUND', 'EVENT_CLOSED')
   cancel(@Param() { id }: IdParamDto): Promise<BookingDto> {
     return this.bookings.cancel(id);
   }

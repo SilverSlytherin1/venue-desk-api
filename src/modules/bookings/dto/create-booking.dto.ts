@@ -8,14 +8,14 @@ const trim = ({ value }: { value: unknown }): unknown =>
   typeof value === 'string' ? value.trim() : value;
 
 export class CreateBookingDto {
-  @ApiProperty({ example: 'Ada Lovelace', maxLength: 120 })
+  @ApiProperty({ example: 'Lena Varga', maxLength: 120 })
   @Transform(trim)
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
   name!: string;
 
-  @ApiProperty({ format: 'email', example: 'ada@example.com' })
+  @ApiProperty({ format: 'email', example: 'lena@example.com' })
   @Transform(trim)
   @IsEmail()
   @MaxLength(254)

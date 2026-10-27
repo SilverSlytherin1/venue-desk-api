@@ -49,8 +49,8 @@ class SampleDto {
 }
 
 const valid = {
-  name: 'Ada Lovelace',
-  email: 'ada@example.com',
+  name: 'Lena Varga',
+  email: 'lena@example.com',
   seats: 2,
   page: 1,
   priority: 'LOW',
@@ -70,7 +70,7 @@ describe('toFieldError', () => {
     ['name', '', 'Name is required.'],
     ['name', 42, 'Name must be text.'],
     ['name', 'x'.repeat(121), 'Name must be at most 120 characters.'],
-    ['email', 'ada@', 'Enter a valid email address.'],
+    ['email', 'lena@', 'Enter a valid email address.'],
     ['seats', null, 'Number of seats is required.'],
     ['seats', 5, 'Number of seats must be between 1 and 4.'],
     ['seats', 0, 'Number of seats must be between 1 and 4.'],
@@ -80,7 +80,7 @@ describe('toFieldError', () => {
     ['assigneeId', 'sam', 'Assignee must be a valid UUID.'],
     ['startsAt', 'friday', 'Start time must be a date and time in ISO 8601 format.'],
     ['startsAt', '2031-05-17T19:30:00', 'Start time must end with Z.'],
-    ['nickname', 'ada', '"nickname" is not an accepted field.'],
+    ['nickname', 'lena', '"nickname" is not an accepted field.'],
   ])('describes %s = %j as "%s"', (field, value, message) => {
     expect(messageFor(field, value)).toBe(message);
   });

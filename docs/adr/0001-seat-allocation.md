@@ -28,6 +28,10 @@ UPDATE events
 -- 3. Commit if step 2 updated one row. Otherwise roll back, which removes the row of step 1.
 ```
 
+Later addition: when step 2 updates a row, the transaction also writes the guest's messages
+(an outbox, see the README) before it commits. The update returns the event's title, venue and
+start time for them, so this adds no read and no lock, and a refused booking writes none.
+
 Three rules together make this correct. Each of them is enforced by the database, not by
 application code that reads first and writes later.
 

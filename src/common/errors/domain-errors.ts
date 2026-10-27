@@ -9,6 +9,9 @@ export type ErrorCode =
   | 'EVENT_CLOSED'
   | 'IDEMPOTENCY_KEY_REUSED'
   | 'INVALID_TRANSITION'
+  | 'FEEDBACK_NOT_FOUND'
+  | 'FEEDBACK_NOT_OPEN'
+  | 'FEEDBACK_ALREADY_SUBMITTED'
   | 'RATE_LIMITED'
   | 'INTERNAL_ERROR';
 
@@ -85,8 +88,8 @@ export class EventSoldOutError extends DomainError {
 export class EventClosedError extends DomainError {
   readonly code = 'EVENT_CLOSED';
 
-  constructor() {
-    super('Booking is closed: the event has already started.');
+  constructor(message = 'Booking is closed: the event has already started.') {
+    super(message);
   }
 }
 
@@ -100,6 +103,34 @@ export class IdempotencyKeyReusedError extends DomainError {
 
 export class InvalidTransitionError extends DomainError {
   readonly code = 'INVALID_TRANSITION';
+}
+
+export class FeedbackNotFoundError extends DomainError {
+  readonly code = 'FEEDBACK_NOT_FOUND';
+
+  constructor() {
+    super('This feedback link is not valid.');
+  }
+}
+
+export class FeedbackNotOpenError extends DomainError {
+  readonly code = 'FEEDBACK_NOT_OPEN';
+
+  constructor(reason: 'cancelled' | 'not-started') {
+    super(
+      reason === 'cancelled'
+        ? 'This booking was cancelled, so there is nothing to rate.'
+        : 'Feedback opens once the event has started.',
+    );
+  }
+}
+
+export class FeedbackAlreadySubmittedError extends DomainError {
+  readonly code = 'FEEDBACK_ALREADY_SUBMITTED';
+
+  constructor() {
+    super('Feedback for this booking has already been submitted.');
+  }
 }
 
 function plural(count: number, noun: string): string {

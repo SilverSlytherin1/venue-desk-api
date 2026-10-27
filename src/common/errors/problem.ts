@@ -11,6 +11,9 @@ export const PROBLEM_TYPES: Record<ErrorCode, { status: number; title: string }>
   EVENT_CLOSED: { status: 409, title: 'Event closed' },
   IDEMPOTENCY_KEY_REUSED: { status: 409, title: 'Idempotency key reused' },
   INVALID_TRANSITION: { status: 409, title: 'Invalid transition' },
+  FEEDBACK_NOT_FOUND: { status: 404, title: 'Feedback link not found' },
+  FEEDBACK_NOT_OPEN: { status: 409, title: 'Feedback not open' },
+  FEEDBACK_ALREADY_SUBMITTED: { status: 409, title: 'Feedback already submitted' },
   RATE_LIMITED: { status: 429, title: 'Too many requests' },
   INTERNAL_ERROR: { status: 500, title: 'Internal server error' },
 };

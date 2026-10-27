@@ -84,12 +84,31 @@ describe('application shell', () => {
         'POST /api/v1/work-orders (token)',
         'PATCH /api/v1/work-orders/{id} (token)',
         'POST /api/v1/work-orders/{id}/transitions (token)',
+        'GET /api/v1/feedback/{token}',
+        'POST /api/v1/feedback/{token}',
+        'GET /api/v1/feedback (token)',
+        'GET /api/v1/feedback-summary (token)',
+        'GET /api/v1/messages (token)',
+        'GET /api/v1/dashboard (token)',
       ].sort(),
     );
     // A property whose type the generator could not see ends up as a schema called "Object".
     expect(Object.keys(components.schemas)).not.toContain('Object');
     expect(Object.keys(components.schemas)).toEqual(
-      expect.arrayContaining(['User', 'UserRef', 'Event', 'Booking', 'WorkOrder', 'Problem']),
+      expect.arrayContaining([
+        'User',
+        'UserRef',
+        'Event',
+        'Booking',
+        'BookingMessage',
+        'Message',
+        'FeedbackInvitation',
+        'FeedbackItem',
+        'FeedbackSummary',
+        'Dashboard',
+        'WorkOrder',
+        'Problem',
+      ]),
     );
   });
 });

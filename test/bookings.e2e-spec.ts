@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { book, createEvent, daysFromNow, expectProblem, signIn } from './support/fixtures.js';
+import {
+  book,
+  createBooking,
+  createEvent,
+  daysFromNow,
+  expectProblem,
+  signIn,
+} from './support/fixtures.js';
 import { type TestApp, useTestApp } from './support/test-app.js';
 
 describe('bookings', () => {
@@ -17,18 +24,24 @@ describe('bookings', () => {
         id: expect.any(String),
         reference: expect.stringMatching(/^VD-[0-9A-Z]{6}$/),
         eventId: event.id,
-        name: 'Ada Lovelace',
-        email: 'ada@example.com',
+        name: 'Lena Varga',
+        email: 'lena@example.com',
         seats: 3,
         status: 'CONFIRMED',
         createdAt: expect.any(String),
+        messages: [
+          expect.objectContaining({ kind: 'CONFIRMATION', status: 'SENT' }),
+          expect.objectContaining({ kind: 'REMINDER', status: 'SCHEDULED' }),
+          expect.objectContaining({ kind: 'FEEDBACK_REQUEST', status: 'SCHEDULED' }),
+        ],
+        rating: null,
       });
       expect(await seatsTaken(t, event.id)).toBe(3);
     });
 
     it('rejects invalid fields and a missing or malformed idempotency key, in plain words', async () => {
       const event = await createEvent(t);
-      const body = { name: 'Ada Lovelace', email: 'ada@example.com', seats: 2 };
+      const body = { name: 'Lena Varga', email: 'lena@example.com', seats: 2 };
       const url = `/events/${event.id}/bookings`;
 
       const tooMany = await book(t, event.id, 5);
@@ -38,7 +51,7 @@ describe('bookings', () => {
       const blank = await t.api
         .post(url)
         .set('Idempotency-Key', randomUUID())
-        .send({ name: '  ', email: 'ada@', seats: 2 });
+        .send({ name: '  ', email: 'lena@', seats: 2 });
 
       for (const response of [tooMany, none, noKey, badKey, blank]) {
         expectProblem(response, 400, 'VALIDATION_FAILED');
@@ -184,12 +197,22 @@ describe('bookings', () => {
     it('cancels the booking and gives its seats back to the event', async () => {
       const { auth } = await signIn(t, 'STAFF');
       const event = await createEvent(t, { capacity: 4 });
-      const { body: booking } = (await book(t, event.id, 4)) as { body: { id: string } };
+      const { body: booking } = (await book(t, event.id, 4)) as {
+        body: { id: string; messages: { kind: string; status: string }[] };
+      };
 
       const response = await t.api.post(`/bookings/${booking.id}/cancel`).set(auth);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ ...booking, status: 'CANCELLED' });
+      expect(response.body).toEqual({
+        ...booking,
+        status: 'CANCELLED',
+        // What has gone out stays sent. What has not will never go out.
+        messages: booking.messages.map((message) => ({
+          ...message,
+          status: message.status === 'SENT' ? 'SENT' : 'CANCELLED',
+        })),
+      });
       expect(await seatsTaken(t, event.id)).toBe(0);
       expect((await book(t, event.id, 4)).status).toBe(201);
     });
@@ -206,6 +229,30 @@ describe('bookings', () => {
       expect(second.status).toBe(200);
       expect(second.body).toEqual(first.body);
       expect(await seatsTaken(t, event.id)).toBe(1);
+    });
+
+    it('refuses once the event has started, and leaves the booking and its seats alone', async () => {
+      const { auth } = await signIn(t, 'STAFF');
+      const event = await createEvent(t, { startsAt: daysFromNow(-1), seatsTaken: 2 });
+      const booking = await createBooking(t, event.id, { seats: 2 });
+
+      const response = await t.api.post(`/bookings/${booking.id}/cancel`).set(auth);
+
+      expectProblem(response, 409, 'EVENT_CLOSED');
+      const stored = await t.prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+      expect(stored.status).toBe('CONFIRMED');
+      expect(await seatsTaken(t, event.id)).toBe(2);
+    });
+
+    it('still answers a repeated cancellation after the event has started', async () => {
+      const { auth } = await signIn(t, 'STAFF');
+      const event = await createEvent(t, { startsAt: daysFromNow(-1) });
+      const booking = await createBooking(t, event.id, { status: 'CANCELLED' });
+
+      const response = await t.api.post(`/bookings/${booking.id}/cancel`).set(auth);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({ id: booking.id, status: 'CANCELLED' });
     });
 
     it('requires a login and an existing booking', async () => {

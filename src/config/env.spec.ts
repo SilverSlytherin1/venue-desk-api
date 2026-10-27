@@ -18,7 +18,21 @@ describe('validateEnv', () => {
       TRUST_PROXY_HOPS: 0,
       LOGIN_RATE_LIMIT: 5,
       BOOKING_RATE_LIMIT: 10,
+      SCHEDULER_ENABLED: true,
+      VENUE_TIME_ZONE: 'Europe/Rome',
+      PUBLIC_WEB_URL: 'http://localhost:4200',
     });
+  });
+
+  it('reads the scheduler flag and drops a trailing slash from the web URL', () => {
+    const env = validateEnv({
+      ...valid,
+      SCHEDULER_ENABLED: 'false',
+      PUBLIC_WEB_URL: 'https://venue.example.com/',
+    });
+
+    expect(env.SCHEDULER_ENABLED).toBe(false);
+    expect(env.PUBLIC_WEB_URL).toBe('https://venue.example.com');
   });
 
   it('turns numeric variables into numbers and the origin list into trimmed entries', () => {
@@ -51,6 +65,12 @@ describe('validateEnv', () => {
     ['a zero rate limit', { LOGIN_RATE_LIMIT: '0' }, /LOGIN_RATE_LIMIT must not be less than 1/],
     ['a rate limit that disables itself', { BOOKING_RATE_LIMIT: '1000000' }, /BOOKING_RATE_LIMIT/],
     ['a demo flag that is not a boolean', { DEMO_MODE: 'yes' }, /DEMO_MODE must be a boolean/],
+    [
+      'an unknown time zone',
+      { VENUE_TIME_ZONE: 'Mars/Olympus' },
+      /VENUE_TIME_ZONE must be an IANA/,
+    ],
+    ['a web URL without a scheme', { PUBLIC_WEB_URL: 'venue.example.com' }, /PUBLIC_WEB_URL must/],
   ])('refuses %s', (_case, override, message) => {
     expect(() => validateEnv({ ...valid, ...override })).toThrow(message);
   });

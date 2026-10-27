@@ -39,7 +39,7 @@ export function useTestApp(): TestApp {
 
   beforeEach(async () => {
     await context.prisma.$executeRaw`
-      TRUNCATE TABLE work_orders, bookings, events, users RESTART IDENTITY CASCADE`;
+      TRUNCATE TABLE feedback, messages, work_orders, bookings, events, users RESTART IDENTITY CASCADE`;
   });
 
   afterAll(async () => {

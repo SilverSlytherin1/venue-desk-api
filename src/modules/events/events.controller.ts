@@ -5,9 +5,10 @@ import { Public } from '../../common/auth/public.decorator.js';
 import { Roles } from '../../common/auth/roles.decorator.js';
 import { ApiProblem } from '../../common/errors/problem.dto.js';
 import { IdParamDto } from '../../common/http/id-param.dto.js';
-import { ApiPageResponse, type Page, PageQueryDto } from '../../common/http/pagination.js';
+import { ApiPageResponse, type Page } from '../../common/http/pagination.js';
 import { CreateEventDto } from './dto/create-event.dto.js';
 import { EventDto } from './dto/event.dto.js';
+import { ListEventsQueryDto } from './dto/list-events-query.dto.js';
 import { EventsService } from './events.service.js';
 
 @ApiTags('events')
@@ -17,10 +18,10 @@ export class EventsController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'List events, soonest first' })
+  @ApiOperation({ summary: 'List upcoming events soonest first, or past events latest first' })
   @ApiPageResponse(EventDto)
   @ApiProblem('VALIDATION_FAILED')
-  list(@Query() query: PageQueryDto): Promise<Page<EventDto>> {
+  list(@Query() query: ListEventsQueryDto): Promise<Page<EventDto>> {
     return this.events.list(query);
   }
 

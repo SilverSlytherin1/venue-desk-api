@@ -1,15 +1,7 @@
 import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { WorkOrderPriority, WorkOrderStatus } from '../work-order.enums.js';
+import { EventRefDto } from '../../events/dto/event-ref.dto.js';
 import { UserRefDto } from '../../users/dto/user.dto.js';
-
-@ApiSchema({ name: 'EventRef' })
-class EventRefDto {
-  @ApiProperty({ format: 'uuid' })
-  id!: string;
-
-  @ApiProperty({ example: 'Autumn Jazz Night' })
-  title!: string;
-}
 
 @ApiSchema({ name: 'WorkOrder' })
 export class WorkOrderDto {

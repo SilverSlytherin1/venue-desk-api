@@ -22,6 +22,32 @@ describe('events', () => {
       expect(titles(second.body)).toEqual(['Third']);
     });
 
+    it('lists upcoming events by default, and past ones latest first with when=past', async () => {
+      await createEvent(t, { title: 'Next week', startsAt: daysFromNow(7) });
+      await createEvent(t, { title: 'Tomorrow', startsAt: daysFromNow(1) });
+      await createEvent(t, { title: 'Last month', startsAt: daysFromNow(-30) });
+      await createEvent(t, { title: 'Yesterday', startsAt: daysFromNow(-1) });
+
+      const upcoming = await t.api.get('/events');
+      const explicit = await t.api.get('/events').query({ when: 'upcoming' });
+      const past = await t.api.get('/events').query({ when: 'past' });
+
+      expect(titles(upcoming.body)).toEqual(['Tomorrow', 'Next week']);
+      expect(upcoming.body).toMatchObject({ total: 2 });
+      expect(explicit.body).toEqual(upcoming.body);
+      expect(titles(past.body)).toEqual(['Yesterday', 'Last month']);
+      expect(past.body).toMatchObject({ total: 2 });
+    });
+
+    it('rejects an unknown value of when', async () => {
+      const response = await t.api.get('/events').query({ when: 'someday' });
+
+      expectProblem(response, 400, 'VALIDATION_FAILED');
+      expect(response.body).toMatchObject({
+        errors: [{ field: 'when', message: 'When must be one of: upcoming, past.' }],
+      });
+    });
+
     it('defaults to the first page of 20', async () => {
       const response = await t.api.get('/events');
 

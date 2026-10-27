@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 import { book, createEvent, createUser, expectProblem, PASSWORD } from './support/fixtures.js';
 import { useTestApp } from './support/test-app.js';
@@ -43,5 +44,17 @@ describe('rate limits', () => {
     expect(Number(throttled.headers['retry-after'])).toBeGreaterThan(0);
     const { seatsTaken } = await t.prisma.event.findUniqueOrThrow({ where: { id: event.id } });
     expect(seatsTaken).toBe(12);
+  });
+
+  it('throttles reading a feedback page, so tokens cannot be guessed at speed', async () => {
+    const read = () => t.api.get(`/feedback/${randomUUID()}`);
+
+    for (let i = 0; i < 3; i++) {
+      expectProblem(await read(), 404, 'FEEDBACK_NOT_FOUND');
+    }
+    const throttled = await read();
+
+    expectProblem(throttled, 429, 'RATE_LIMITED');
+    expect(Number(throttled.headers['retry-after'])).toBeGreaterThan(0);
   });
 });

@@ -5,6 +5,8 @@ import {
   IsIn,
   IsInt,
   IsString,
+  IsTimeZone,
+  IsUrl,
   Matches,
   Max,
   Min,
@@ -90,6 +92,23 @@ export class Env {
   @Min(1)
   @Max(1000)
   BOOKING_RATE_LIMIT = 10;
+
+  /** Runs the message dispatcher every minute. The e2e suite turns it off and calls it directly. */
+  @Transform(toBoolean)
+  @IsBoolean()
+  SCHEDULER_ENABLED = true;
+
+  /** IANA time zone in which guest messages show dates and times. */
+  @IsTimeZone({ message: 'VENUE_TIME_ZONE must be an IANA time zone such as Europe/Rome' })
+  VENUE_TIME_ZONE = 'Europe/Rome';
+
+  /** Address of the web app, used for the links in guest messages. Stored without a trailing slash. */
+  @Transform(({ value }: Raw) => (typeof value === 'string' ? value.replace(/\/+$/, '') : value))
+  @IsUrl(
+    { require_tld: false, require_protocol: true, protocols: ['http', 'https'] },
+    { message: 'PUBLIC_WEB_URL must be an http(s) URL such as https://venue.example.com' },
+  )
+  PUBLIC_WEB_URL = 'http://localhost:4200';
 }
 
 /** Throws at startup, listing every problem at once, so a misconfigured process never serves traffic. */

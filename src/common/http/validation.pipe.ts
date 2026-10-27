@@ -8,6 +8,8 @@ export function createValidationPipe(): ValidationPipe {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
+    // ruleArgs reads the declared rule arguments through the target; Nest defaults differ by version.
+    validationError: { target: true, value: true },
     exceptionFactory: (errors) => new ValidationFailedError(errors.map(toFieldError)),
   });
 }
@@ -22,6 +24,7 @@ const LABELS: Partial<Record<string, string>> = {
   pageSize: 'Page size',
   q: 'Search text',
   to: 'Target status',
+  token: 'Feedback link',
 };
 
 /**
@@ -43,6 +46,8 @@ const MESSAGES: Partial<Record<string, (label: string, error: ValidationError) =
     `${label} must be at most ${ruleArgs<number>(error, 'maxLength')[0]} characters.`,
   isEnum: (label, error) =>
     `${label} must be one of: ${ruleArgs<string[]>(error, 'isEnum')[1]?.join(', ')}.`,
+  isIn: (label, error) =>
+    `${label} must be one of: ${ruleArgs<string[]>(error, 'isIn')[0]?.join(', ')}.`,
 };
 
 /**
